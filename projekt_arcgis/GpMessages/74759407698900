@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?><messages><msg code="0" type="2">Start Time: wtorek, 20 stycznia 2026 17:07:57</msg><msg code="-2147467259" type="100">﻿Traceback (most recent call last):
+﻿  File "C:\Projekty\drone-path-optimizer\projekt_arcgis\drone_path_optimizer_project.atbx\dronepathoptimizer.tool\tool.script.execute.py", line 150, in &lt;module&gt;
+﻿  File "C:\Projekty\drone-path-optimizer\projekt_arcgis\drone_path_optimizer_project.atbx\dronepathoptimizer.tool\tool.script.execute.py", line 143, in main
+﻿  File "C:\Projekty\drone-path-optimizer\projekt_arcgis\drone_path_optimizer_project.atbx\dronepathoptimizer.tool\tool.script.execute.py", line 114, in compute_path
+﻿  File "C:\Projekty\drone-path-optimizer\projekt_arcgis\drone_path_optimizer_project.atbx\dronepathoptimizer.tool\tool.script.execute.py", line 55, in create_point_fc
+﻿RuntimeError: The coordinates or measures are out of bounds.
+</msg><msg code="0" type="0">Failed script Drone path optimizer...</msg><msg code="-2147467259" type="100">Failed to execute (dronepathoptimizer).</msg><msg code="0" type="3">Failed at wtorek, 20 stycznia 2026 17:08:01 (Elapsed Time: 4,38 seconds)</msg></messages>
