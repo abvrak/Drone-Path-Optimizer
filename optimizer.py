@@ -13,7 +13,7 @@ def parse_xy(value):
     """
     Konwertuje ciąg znaków (string) z parametru wejściowego na dwie liczby zmiennoprzecinkowe (float).
     Oczekuje formatu "X, Y" (np. "747945.82, 383931.63").
-    UWAGA: Separator dziesiętny to kropka (.), a separator liczb to przecinek (,).
+    Separator dziesiętny to kropka (.), a separator liczb to przecinek (,).
     """
     # Rozdzielenie tekstu po przecinku i usunięcie białych znaków (spacji)
     parts = [p.strip() for p in value.split(",")]
@@ -80,11 +80,10 @@ def get_lublin_weather(api_key):
 def create_point_fc(output_gdb, nmt_raster, name, point_xy):
     """
     Tworzy fizyczną warstwę punktową (Feature Class) w geobazie na podstawie współrzędnych X, Y.
-    Jest to konieczne, ponieważ narzędzia 'Cost Distance' wymagają warstwy, a nie samych liczb.
     """
     fc_path = os.path.join(output_gdb, name)
     
-    # Usuwamy starą warstwę, jeśli istnieje (nadpisywanie)
+    # Usuwamy starą warstwę, jeśli istnieje
     if arcpy.Exists(fc_path):
         arcpy.management.Delete(fc_path)
 
@@ -96,7 +95,7 @@ def create_point_fc(output_gdb, nmt_raster, name, point_xy):
     )
     arcpy.management.AddField(fc_path, "Name", "TEXT")
     
-    # Wstawiamy punkt do nowej warstwy używając kursora (InsertCursor)
+    # Wstawiamy punkt do nowej warstwy używając kursora
     with arcpy.da.InsertCursor(fc_path, ["SHAPE@", "Name"]) as cursor:
         point = arcpy.Point(point_xy[0], point_xy[1])
         cursor.insertRow([arcpy.PointGeometry(point, spatial_ref), name])
@@ -120,20 +119,17 @@ def build_cost_raster(
 ):
     """
     Tworzy raster kosztu (Cost Surface). Każda komórka rastra otrzymuje wartość
-    reprezentującą "trudność" przelotu przez ten obszar.
-    Czynniki: nachylenie terenu, budynki, wiatr, roślinność.
+    reprezentującą trudność przelotu przez ten obszar.
     """
-    # Włączenie rozszerzenia Spatial Analyst
+
     arcpy.CheckOutExtension("Spatial")
 
-    # Wczytanie NMT (Numeryczny Model Terenu - sama ziemia)
     nmt = Raster(nmt_raster)
     
     # Ustawienie środowiska analizy (snapowanie do siatki rastra)
     arcpy.env.snapRaster = nmt
     arcpy.env.cellSize = nmt.meanCellWidth
 
-    # 1. Analiza terenu (Slope - nachylenie, Aspect - ekspozycja stoku)
     slope = Slope(nmt, "DEGREE")
     aspect = Aspect(nmt)
     
@@ -144,12 +140,12 @@ def build_cost_raster(
         RemapRange([[0, 5, 1], [5, 15, 2], [15, 30, 4], [30, 90, 8]]),
     )
 
-    # 2. Obsługa budynków - tworzenie strefy buforowej
+    # 2. Obsługa budynków, tworzenie strefy buforowej
     buildings_buffer = os.path.join(output_gdb, "buildings_buffer_10m")
     if arcpy.Exists(buildings_buffer):
         arcpy.management.Delete(buildings_buffer)
 
-    # Bufor 10m wokół każdego budynku (strefa niebezpieczna)
+    # Bufor 10m wokół każdego budynku
     arcpy.analysis.Buffer(
         buildings_fc,
         buildings_buffer,
@@ -167,9 +163,9 @@ def build_cost_raster(
         buildings_buffer, oid_field, buildings_raster, cellsize=nmt.meanCellWidth
     )
 
-    # 3. Wpływ wiatru (Algebra map)
+    # 3. Wpływ wiatru
     if wind_speed > 0:
-        # Obliczamy różnicę między ekspozycją stoku (Aspect) a kierunkiem wiatru
+        # Obliczamy różnicę między ekspozycją stoku a kierunkiem wiatru
         angle_diff = Abs(Mod(aspect - float(wind_deg) + 180.0, 360.0) - 180.0)
         # Formuła: wiatr wiejący prostopadle do zbocza zwiększa turbulencje
         wind_factor_raster = 1.0 + (float(wind_speed) / 15.0) * (angle_diff / 180.0)
@@ -179,18 +175,17 @@ def build_cost_raster(
     else:
         base_cost = slope_cost
         
-    # 4. Wpływ roślinności (NMPT - NMT = Wysokość obiektów/drzew)
-    # NMPT (Model Pokrycia Terenu) zawiera korony drzew, NMT to grunt.
+    # 4. Wpływ roślinności
+    # NMPT zawiera korony drzew, NMT to grunt.
     vegetation = Raster(vegetation_raster)
     vegetation_height = Con(IsNull(vegetation), 0, vegetation - nmt)
-    # Korekta błędów ujemnych (czasem zdarzają się szumy w danych)
     vegetation_height = Con(vegetation_height < 0, 0, vegetation_height)
     
     # Mnożnik kosztu rośnie wraz z wysokością roślinności
     vegetation_multiplier = 1.0 + (vegetation_height * float(vegetation_penalty))
     base_cost = base_cost * vegetation_multiplier
 
-    # 5. Finalne sklejenie kosztów (Algebra warunkowa - Con)
+    # 5. Finalne sklejenie kosztów
     # Jeśli komórka pokrywa się z budynkiem (IsNull jest False), nałóż ogromną karę (penalty).
     # W przeciwnym razie użyj obliczonego kosztu bazowego.
     cost_raster = Con(
@@ -207,7 +202,7 @@ def build_cost_raster(
 
 def create_3d_path(nmt_raster, path_2d, output_gdb, altitude_offset=0.0):
     """
-    Konwertuje płaską trasę (2D) na linię trójwymiarową (3D), "przyklejając" ją do terenu.
+    Konwertuje płaską trasę (2D) na linię trójwymiarową (3D), przyklejając ją do terenu.
     Dodatkowo podnosi trasę o zadaną wysokość przelotu (altitude_offset).
     """
     output_3d = os.path.join(output_gdb, "drone_path_3d")
@@ -261,7 +256,7 @@ def create_3d_path(nmt_raster, path_2d, output_gdb, altitude_offset=0.0):
 
 
 # ==========================================
-# FUNKCJA STERUJĄCA (ORCHESTRATOR)
+# FUNKCJA STERUJĄCA
 # ==========================================
 
 def compute_path(
@@ -330,7 +325,7 @@ def compute_path(
 
 
 # ==========================================
-# MAIN - WEJŚCIE DO PROGRAMU Z ARCGIS
+# MAIN, WEJŚCIE DO PROGRAMU Z ARCGIS
 # ==========================================
 
 def main():
